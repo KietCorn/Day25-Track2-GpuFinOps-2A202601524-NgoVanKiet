@@ -3,7 +3,8 @@ from __future__ import annotations
 
 
 def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
-                 sustainability: dict | None = None, period: str = "monthly") -> str:
+                 sustainability: dict | None = None, period: str = "monthly",
+                 unit_economics: dict | None = None, analysis: dict | None = None) -> str:
     """Return a markdown cost-optimization report."""
     savings = baseline_usd - optimized_usd
     pct = (savings / baseline_usd * 100.0) if baseline_usd > 0 else 0.0
@@ -22,6 +23,47 @@ def build_report(baseline_usd: float, optimized_usd: float, levers: dict,
     ]
     for name, amount in levers.items():
         lines.append(f"| {name} | ${amount:,.0f} |")
+    if unit_economics:
+        lines += [
+            "",
+            "## Unit economics",
+            "",
+            f"- Baseline: **${unit_economics.get('baseline_per_m', 0):.3f}/1M-token**",
+            f"- Optimized: **${unit_economics.get('optimized_per_m', 0):.3f}/1M-token**",
+            f"- Served: {unit_economics.get('total_tokens', 0):,} tokens/day",
+        ]
+    if analysis:
+        lines += [
+            "",
+            "## GPU efficiency analysis",
+            "",
+        ]
+        if "util_lies" in analysis:
+            gpu_list = ", ".join(analysis["util_lies"]) if analysis["util_lies"] else "none"
+            lines.append(f"- **GPU-Util lies detected:** {gpu_list}")
+            lines.append("  - High nvidia-smi % but low MFU → money leaking")
+            lines.append("  - Action: right-size to cheaper GPU or optimize workload")
+        if "idle_waste" in analysis:
+            lines.append(f"- **Idle GPUs wasting:** ${analysis['idle_waste']:.0f}/day")
+        if "reasoning_pct" in analysis:
+            lines += [
+                "",
+                "## Extension: Reasoning workload impact",
+                "",
+                f"- {analysis['reasoning_pct']:.1f}% of tokens are reasoning queries",
+                f"- {analysis['reasoning_cost_pct']:.1f}% of optimized cost",
+                f"- {analysis['reasoning_wh_pct']:.1f}% of energy consumption",
+                "- Recommendation: cap reasoning requests or route to batch tier",
+            ]
+        if "cache_enabled" in analysis:
+            lines += [
+                "",
+                "## Extension: Cache economics",
+                "",
+                f"- Cache hit rate: {analysis['cache_hit_rate']:.1%}",
+                f"- Cache break-even achieved: {analysis['cache_enabled']}",
+                f"- Write cost amortized over {analysis['cache_hit_rate']:.1f}× reads",
+            ]
     if sustainability:
         lines += [
             "",

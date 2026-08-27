@@ -52,7 +52,24 @@ def run(verbose: bool = True) -> dict:
         "best_region": min(sustainability.REGION_CARBON, key=sustainability.REGION_CARBON.get),
     }
 
-    md = report.build_report(baseline, optimized, levers, sustainability=sust)
+    # --- unit economics and analysis ---
+    unit_econ = {
+        "baseline_per_m": r2["baseline_per_m"],
+        "optimized_per_m": r2["optimized_per_m"],
+        "total_tokens": r2["total_tokens"],
+    }
+    analysis = {
+        "util_lies": [l["gpu_id"] for l in r1["lies"]],
+        "idle_waste": r1["idle_waste_daily"],
+        "reasoning_pct": r2.get("reasoning_pct_requests", 0),
+        "reasoning_cost_pct": r2.get("reasoning_pct_cost", 0),
+        "reasoning_wh_pct": r2.get("reasoning_pct_wh", 0),
+        "cache_hit_rate": r2.get("cache_hit_rate", 1.0),
+        "cache_enabled": r2.get("cache_enabled", True),
+    }
+
+    md = report.build_report(baseline, optimized, levers, sustainability=sust,
+                             unit_economics=unit_econ, analysis=analysis)
     out_md = os.path.join(ROOT, "outputs", "report.md")
     os.makedirs(os.path.dirname(out_md), exist_ok=True)
     with open(out_md, "w") as f:
